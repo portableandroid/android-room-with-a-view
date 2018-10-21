@@ -23,6 +23,9 @@ import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
+import android.util.Log;
+
+import java.util.List;
 
 /**
  * This is the backend. The database. This used to be done by the OpenHelper.
@@ -61,14 +64,21 @@ public abstract class WordRoomDatabase extends RoomDatabase {
      * If you want to populate the database only when the database is created for the 1st time,
      * override RoomDatabase.Callback()#onCreate
      */
-    private static RoomDatabase.Callback sRoomDatabaseCallback = new RoomDatabase.Callback() {
+    private static RoomDatabase.Callback sRoomDatabaseCallback = new RoomDatabase.Callback(){
 
         @Override
-        public void onOpen(@NonNull SupportSQLiteDatabase db) {
+        public void onOpen (@NonNull SupportSQLiteDatabase db){
             super.onOpen(db);
             // If you want to keep the data through app restarts,
             // comment out the following line.
             new PopulateDbAsync(INSTANCE).execute();
+        }
+
+        @Override
+        public void onCreate(@NonNull SupportSQLiteDatabase db){
+            super.onCreate(db);
+            new CreateDbAsync(INSTANCE).execute();
+
         }
     };
 
@@ -88,14 +98,43 @@ public abstract class WordRoomDatabase extends RoomDatabase {
         protected Void doInBackground(final Void... params) {
             // Start the app with a clean database every time.
             // Not needed if you only populate on creation.
+
+            /*
             mDao.deleteAll();
 
             Word word = new Word("Hello");
             mDao.insert(word);
             word = new Word("World");
             mDao.insert(word);
+
+            */
             return null;
         }
     }
 
+    private static class CreateDbAsync extends AsyncTask<Void, Void, Void> {
+
+        private final WordDao mDao;
+
+        CreateDbAsync(WordRoomDatabase db) {
+            mDao = db.wordDao();
+        }
+
+        @Override
+        protected Void doInBackground(final Void... params) {
+            //Check here
+
+            Word word = new Word("Hello");
+            mDao.insert(word);
+            word = new Word("World");
+            mDao.insert(word);
+
+            List<Word> listWord = INSTANCE.wordDao().getAlphabetizedWords().getValue();
+            if(listWord != null) {
+                int size = listWord.size();
+                Log.d("Database", "Table size " + size);
+            }
+            return null;
+        }
+    }
 }
